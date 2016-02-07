@@ -7,28 +7,28 @@
 #include "unity_fixture.h"
 #include "umqtt/umqtt.h"
 
-TEST_GROUP(Process);
+TEST_GROUP(Decode);
 
-static Mqtt_Handle_t h = NULL;
-static Mqtt_Data_t encbuf = {0, NULL};
+static umqtt_Handle_t h = NULL;
+static umqtt_Data_t encbuf = {0, NULL};
 extern uint8_t testBuf[512];
 
-static Mqtt_Handle_t cb_h;
-static Mqtt_Event_t cb_event;
+static umqtt_Handle_t cb_h;
+static umqtt_Event_t cb_event;
 static void *cb_pInfo;
 static uint32_t cb_infosize;
 static bool cb_wasCalled = false;
-static Mqtt_Data_t replybuf = {0, NULL};
+static umqtt_Data_t replybuf = {0, NULL};
 
 static void
-Process_EventCb(Mqtt_Handle_t handle, Mqtt_Event_t event, void *pInfo)
+Decode_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo)
 {
     TEST_ASSERT_EQUAL(cb_h, handle);
-    if (event == MQTT_EVENT_REPLY)
+    if (event == UMQTT_EVENT_REPLY)
     {
         TEST_ASSERT_NOT_NULL(replybuf.data);
         TEST_ASSERT_NOT_EQUAL(replybuf.len, 0);
-        Mqtt_Data_t *puback = pInfo;
+        umqtt_Data_t *puback = pInfo;
         TEST_ASSERT_EQUAL(replybuf.len, puback->len);
         TEST_ASSERT_EQUAL_MEMORY(replybuf.data, puback->data, replybuf.len);
         replybuf.data = NULL;
@@ -41,10 +41,10 @@ Process_EventCb(Mqtt_Handle_t handle, Mqtt_Event_t event, void *pInfo)
         {
             TEST_ASSERT_NOT_NULL(pInfo);
         }
-        if (event == MQTT_EVENT_PUBLISH)
+        if (event == UMQTT_EVENT_PUBLISH)
         {
-            Mqtt_Publish_Options_t *pExpected = cb_pInfo;
-            Mqtt_Publish_Options_t *pActual = pInfo;
+            umqtt_Publish_Options_t *pExpected = cb_pInfo;
+            umqtt_Publish_Options_t *pActual = pInfo;
             TEST_ASSERT_EQUAL(pExpected->dup, pActual->dup);
             TEST_ASSERT_EQUAL(pExpected->qos, pActual->qos);
             TEST_ASSERT_EQUAL(pExpected->retain, pActual->retain);
@@ -58,10 +58,10 @@ Process_EventCb(Mqtt_Handle_t handle, Mqtt_Event_t event, void *pInfo)
                                          pExpected->message.len);
             }
         }
-        else if (event == MQTT_EVENT_SUBACK)
+        else if (event == UMQTT_EVENT_SUBACK)
         {
-            Mqtt_Data_t *pExpected = cb_pInfo;
-            Mqtt_Data_t *pActual = pInfo;
+            umqtt_Data_t *pExpected = cb_pInfo;
+            umqtt_Data_t *pActual = pInfo;
             TEST_ASSERT_EQUAL(pExpected->len, pActual->len);
             TEST_ASSERT_EQUAL_MEMORY(pExpected->data, pActual->data, pExpected->len);
         }
@@ -73,11 +73,11 @@ Process_EventCb(Mqtt_Handle_t handle, Mqtt_Event_t event, void *pInfo)
     cb_wasCalled = true;
 }
 
-TEST_SETUP(Process)
+TEST_SETUP(Decode)
 {
-    static Mqtt_Instance_t inst;
-    h = Mqtt_InitInstance(&inst, Process_EventCb);
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
+    static umqtt_Instance_t inst;
+    h = umqtt_InitInstance(&inst, Decode_EventCb);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
     cb_h = NULL;
     cb_event = 0;
     cb_pInfo = NULL;
@@ -86,36 +86,36 @@ TEST_SETUP(Process)
     replybuf.data = NULL;
 }
 
-TEST_TEAR_DOWN(Process)
+TEST_TEAR_DOWN(Decode)
 {
     h = NULL;
 }
 
-TEST(Process, NullParms)
+TEST(Decode, NullParms)
 {
-    Mqtt_Error_t err;
-    err = Mqtt_Process(NULL, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PARM, err);
-    err = Mqtt_Process(h, NULL);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PARM, err);
+    umqtt_Error_t err;
+    err = umqtt_DecodePacket(NULL, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
+    err = umqtt_DecodePacket(h, NULL);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
 }
 
 // packet with bad type (invalid)
-TEST(Process, BadPacket)
+TEST(Decode, BadPacket)
 {
-    Mqtt_Error_t err;
+    umqtt_Error_t err;
 
     encbuf.data[0] = 0xFF;
     encbuf.len = 2;
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
 }
 
 // connack
-TEST(Process, Connack)
+TEST(Decode, Connack)
 {
-    Mqtt_Error_t err;
-    Mqtt_Connect_Result_t res;
+    umqtt_Error_t err;
+    umqtt_Connect_Result_t res;
 
     // packet with bad length field
     encbuf.data[0] = 0x20;
@@ -124,32 +124,32 @@ TEST(Process, Connack)
     encbuf.data[3] = 0; // rc
     encbuf.len = 4;
     cb_wasCalled = false;
-    cb_h = (Mqtt_Handle_t)1; // bread crumb if failure
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    cb_h = (umqtt_Handle_t)1; // bread crumb if failure
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // bad packet length
     encbuf.data[1] = 2; // valid length field
     encbuf.len = 5; // bad overall length
     cb_wasCalled = false;
-    cb_h = (Mqtt_Handle_t)2; // bread crumb if failure
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    cb_h = (umqtt_Handle_t)2; // bread crumb if failure
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // valid nominal packet
     encbuf.len = 4;
     // expected callback values
     cb_h = h;
-    cb_event = MQTT_EVENT_CONNECTED;
+    cb_event = UMQTT_EVENT_CONNECTED;
     res.returnCode = 0;
     res.sessionPresent = false;
     cb_pInfo = &res;
-    cb_infosize = sizeof(Mqtt_Connect_Result_t);
+    cb_infosize = sizeof(umqtt_Connect_Result_t);
     cb_wasCalled = false;
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 
     // set the options and verify they are decoded
@@ -158,10 +158,10 @@ TEST(Process, Connack)
     res.returnCode = 3;
     res.sessionPresent = true;
     cb_pInfo = &res;
-    cb_infosize = sizeof(Mqtt_Connect_Result_t);
+    cb_infosize = sizeof(umqtt_Connect_Result_t);
     cb_wasCalled = false;
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
@@ -203,25 +203,25 @@ static uint8_t pubackPacket[] =
 };
 
 // publish
-TEST(Process, Publish)
+TEST(Decode, Publish)
 {
-    Mqtt_Error_t err;
-    Mqtt_Publish_Options_t opt;
+    umqtt_Error_t err;
+    umqtt_Publish_Options_t opt;
 
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)1; // bread crumb
+    cb_h = (umqtt_Handle_t)1; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket0);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket0);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)2; // bread crumb
+    cb_h = (umqtt_Handle_t)2; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket1);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket1);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // simple good packet
@@ -233,13 +233,13 @@ TEST(Process, Publish)
     opt.message.data = NULL;
     opt.message.len = 0;
     cb_h = h;
-    cb_event = MQTT_EVENT_PUBLISH;
+    cb_event = UMQTT_EVENT_PUBLISH;
     cb_wasCalled = false;
     cb_pInfo = &opt;
     cb_infosize = sizeof(opt);
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket2);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket2);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 
     // publish message with all features
@@ -251,14 +251,14 @@ TEST(Process, Publish)
     opt.message.data = (uint8_t *)"message";
     opt.message.len = 7;
     cb_h = h;
-    cb_event = MQTT_EVENT_PUBLISH;
+    cb_event = UMQTT_EVENT_PUBLISH;
     cb_wasCalled = false;
     cb_pInfo = &opt;
     cb_infosize = sizeof(opt);
-    MQTT_INIT_DATA_STATIC_BUF(replybuf, pubackPacket);
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket3);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(replybuf, pubackPacket);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, publishPacket3);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
     // confirm that puback was received
     TEST_ASSERT_EQUAL(replybuf.len, 0);
@@ -271,27 +271,27 @@ static uint8_t pubackBadPacket[] =
 };
 
 // puback
-TEST(Process, Puback)
+TEST(Decode, Puback)
 {
-    Mqtt_Error_t err;
+    umqtt_Error_t err;
 
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)1; // bread crumb
+    cb_h = (umqtt_Handle_t)1; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, pubackBadPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, pubackBadPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // good puback packet
     cb_h = h;
-    cb_event = MQTT_EVENT_PUBACK;
+    cb_event = UMQTT_EVENT_PUBACK;
     cb_wasCalled = false;
     cb_pInfo = NULL;
     cb_infosize = 0;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, pubackPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, pubackPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
@@ -305,27 +305,27 @@ static uint8_t subackBadPacket[] =
 };
 
 // suback
-TEST(Process, Suback)
+TEST(Decode, Suback)
 {
-    Mqtt_Error_t err;
+    umqtt_Error_t err;
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)1; // bread crumb
+    cb_h = (umqtt_Handle_t)1; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, subackBadPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, subackBadPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // good suback packet
     cb_h = h;
-    cb_event = MQTT_EVENT_SUBACK;
+    cb_event = UMQTT_EVENT_SUBACK;
     cb_wasCalled = false;
     uint8_t rc[3] = { 1, 0, 2 };
-    MQTT_INIT_DATA_STATIC_BUF(replybuf, rc);
+    UMQTT_INIT_DATA_STATIC_BUF(replybuf, rc);
     cb_pInfo = &replybuf;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, subackPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, subackPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
@@ -333,27 +333,27 @@ static uint8_t unsubackBadPacket[] = { 0xB0, 2, 0 };
 static uint8_t unsubackPacket[] = { 0xB0, 2, 0, 1 };
 
 // unsuback
-TEST(Process, Unsuback)
+TEST(Decode, Unsuback)
 {
-    Mqtt_Error_t err;
+    umqtt_Error_t err;
 
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)1; // bread crumb
+    cb_h = (umqtt_Handle_t)1; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, unsubackBadPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, unsubackBadPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // good unsuback packet
     cb_h = h;
-    cb_event = MQTT_EVENT_UNSUBACK;
+    cb_event = UMQTT_EVENT_UNSUBACK;
     cb_wasCalled = false;
     cb_pInfo = NULL;
     cb_infosize = 0;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, unsubackPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, unsubackPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
@@ -361,40 +361,40 @@ static uint8_t pingrespBadPacket[] = { 0xD0, 1 };
 static uint8_t pingrespPacket[] = { 0xD0, 0 };
 
 // pingresp
-TEST(Process, Pingresp)
+TEST(Decode, Pingresp)
 {
-    Mqtt_Error_t err;
+    umqtt_Error_t err;
 
     // verify bad packet is detected
-    cb_h = (Mqtt_Handle_t)1; // bread crumb
+    cb_h = (umqtt_Handle_t)1; // bread crumb
     cb_wasCalled = false;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, pingrespBadPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_PACKET_ERROR, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, pingrespBadPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
     TEST_ASSERT_FALSE(cb_wasCalled);
 
     // good pingresp packet
     cb_h = h;
-    cb_event = MQTT_EVENT_PINGRESP;
+    cb_event = UMQTT_EVENT_PINGRESP;
     cb_wasCalled = false;
     cb_pInfo = NULL;
     cb_infosize = 0;
-    MQTT_INIT_DATA_STATIC_BUF(encbuf, pingrespPacket);
-    err = Mqtt_Process(h, &encbuf);
-    TEST_ASSERT_EQUAL(MQTT_ERR_OK, err);
+    UMQTT_INIT_DATA_STATIC_BUF(encbuf, pingrespPacket);
+    err = umqtt_DecodePacket(h, &encbuf);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
-TEST_GROUP_RUNNER(Process)
+TEST_GROUP_RUNNER(Decode)
 {
-    RUN_TEST_CASE(Process, NullParms);
-    RUN_TEST_CASE(Process, BadPacket);
-    RUN_TEST_CASE(Process, Connack);
-    RUN_TEST_CASE(Process, Publish);
-    RUN_TEST_CASE(Process, Puback);
-    RUN_TEST_CASE(Process, Suback);
-    RUN_TEST_CASE(Process, Unsuback);
-    RUN_TEST_CASE(Process, Pingresp);
+    RUN_TEST_CASE(Decode, NullParms);
+    RUN_TEST_CASE(Decode, BadPacket);
+    RUN_TEST_CASE(Decode, Connack);
+    RUN_TEST_CASE(Decode, Publish);
+    RUN_TEST_CASE(Decode, Puback);
+    RUN_TEST_CASE(Decode, Suback);
+    RUN_TEST_CASE(Decode, Unsuback);
+    RUN_TEST_CASE(Decode, Pingresp);
 }
 
 // bad parms
