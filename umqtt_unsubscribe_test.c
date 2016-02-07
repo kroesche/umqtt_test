@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "unity_fixture.h"
-#include "umqtt.h"
+#include "umqtt/umqtt.h"
 
 TEST_GROUP(Unsubscribe);
 

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "unity_fixture.h"
-#include "umqtt.h"
+#include "umqtt/umqtt.h"
 
 TEST_GROUP(Connect);
 

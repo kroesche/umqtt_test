@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "unity_fixture.h"
-#include "umqtt.h"
+#include "umqtt/umqtt.h"
 
 // TODO: put const on constancts and where it makes sense
 

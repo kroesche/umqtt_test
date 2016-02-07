@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 #include "unity_fixture.h"
-#include "umqtt.h"
+#include "umqtt/umqtt.h"
 
 uint8_t testBuf[512];
 
