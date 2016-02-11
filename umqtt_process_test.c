@@ -109,6 +109,7 @@ TEST(Decode, BadPacket)
     encbuf.len = 2;
     err = umqtt_DecodePacket(h, &encbuf);
     TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
+    TEST_IGNORE_MESSAGE("NEED TO ADD PACKET LENGTH 0 TEST");
 }
 
 // connack
