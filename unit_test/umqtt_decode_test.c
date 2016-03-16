@@ -21,7 +21,7 @@ static bool cb_wasCalled = false;
 static umqtt_Data_t replybuf = {0, NULL};
 
 static void
-Decode_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo)
+Decode_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo, void *pUser)
 {
     TEST_ASSERT_EQUAL(cb_h, handle);
     if (event == UMQTT_EVENT_REPLY)
@@ -76,7 +76,7 @@ Decode_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo)
 TEST_SETUP(Decode)
 {
     static umqtt_Instance_t inst;
-    h = umqtt_InitInstance(&inst, Decode_EventCb);
+    h = umqtt_InitInstance(&inst, Decode_EventCb, NULL);
     UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
     cb_h = NULL;
     cb_event = 0;
@@ -386,6 +386,11 @@ TEST(Decode, Pingresp)
     TEST_ASSERT_TRUE(cb_wasCalled);
 }
 
+TEST(Decode, UserCallback)
+{
+    // need test to verify pUser in callback function works correctly
+    TEST_IGNORE_MESSAGE("IMPLEMENT ME");
+}
 TEST_GROUP_RUNNER(Decode)
 {
     RUN_TEST_CASE(Decode, NullParms);
@@ -396,6 +401,7 @@ TEST_GROUP_RUNNER(Decode)
     RUN_TEST_CASE(Decode, Suback);
     RUN_TEST_CASE(Decode, Unsuback);
     RUN_TEST_CASE(Decode, Pingresp);
+    RUN_TEST_CASE(Decode, UserCallback);
 }
 
 // bad parms

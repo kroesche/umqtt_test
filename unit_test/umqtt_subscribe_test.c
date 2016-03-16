@@ -14,12 +14,12 @@ static umqtt_Subscribe_Options_t options;
 static umqtt_Data_t encbuf = {0, NULL};
 extern uint8_t testBuf[512];
 
-extern void umqttTest_EventCb(umqtt_Handle_t, umqtt_Event_t, void *);
+extern void umqttTest_EventCb(umqtt_Handle_t, umqtt_Event_t, void *, void *);
 
 TEST_SETUP(BuildSubscribe)
 {
     static umqtt_Instance_t inst;
-    h = umqtt_InitInstance(&inst, umqttTest_EventCb);
+    h = umqtt_InitInstance(&inst, umqttTest_EventCb, NULL);
     options = (umqtt_Subscribe_Options_t)SUBSCRIBE_OPTIONS_INITIALIZER;
     UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
 }

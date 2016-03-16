@@ -8,7 +8,7 @@
 uint8_t testBuf[512];
 
 void
-umqttTest_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo)
+umqttTest_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo, void *pUser)
 {}
 
 static void
