@@ -6,4 +6,4 @@
 	url = https://github.com/eclipse/paho.mqtt.testing.git
 [submodule "Unity"]
 	path = Unity
-	url = https://github.com/ThrowTheSwitch/Unity.git
+	url = https://github.com/kroesche/Unity.git
