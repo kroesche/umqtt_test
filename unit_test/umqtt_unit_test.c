@@ -5,21 +5,17 @@
 #include "unity_fixture.h"
 #include "umqtt/umqtt.h"
 
-uint8_t testBuf[512];
-
-void
-umqttTest_EventCb(umqtt_Handle_t handle, umqtt_Event_t event, void *pInfo, void *pUser)
-{}
-
 static void
 RunAllTests(void)
 {
+    RUN_TEST_GROUP(PacketHandling);
     RUN_TEST_GROUP(Instance);
-    RUN_TEST_GROUP(BuildConnect);
-    RUN_TEST_GROUP(BuildPublish);
-    RUN_TEST_GROUP(BuildSubscribe);
-    RUN_TEST_GROUP(BuildUnsubscribe);
+    RUN_TEST_GROUP(Connect);
+    RUN_TEST_GROUP(Publish);
+    RUN_TEST_GROUP(Subscribe);
+    RUN_TEST_GROUP(Unsubscribe);
     RUN_TEST_GROUP(Decode);
+    RUN_TEST_GROUP(Run);
 }
 
 int

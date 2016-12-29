@@ -1,3 +1,18 @@
+###############################################################################
+#
+# Makefile - Makefile for umqtt compliance test suite
+#
+# Copyright (c) 2016, Joseph Kroesche (tronics.kroesche.io)
+# All rights reserved.
+#
+# This software is released under the FreeBSD license, found in the
+# accompanying file LICENSE.txt and at the following URL:
+#      http://www.freebsd.org/copyright/freebsd-license.html
+#
+# This software is provided as-is and without warranty.
+#
+###############################################################################
+
 EXE:=umqtt_compliance_test
 
 CFLAGS:=-g -Wall -O0 -DUNITY_EXCLUDE_FLOAT -I../ -I../Unity/src -I../Unity/extras/fixture/src

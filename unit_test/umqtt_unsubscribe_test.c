@@ -6,132 +6,129 @@
 
 #include "unity_fixture.h"
 #include "umqtt/umqtt.h"
+#include "umqtt_mocks.h"
+#include "umqtt_wrapper.h"
 
-TEST_GROUP(BuildUnsubscribe);
+TEST_GROUP(Unsubscribe);
 
 static umqtt_Handle_t h = NULL;
-static umqtt_Unsubscribe_Options_t options;
-static umqtt_Data_t encbuf = {0, NULL};
-extern uint8_t testBuf[512];
+static void *instBuf = NULL;
+#define SIZE_INSTBUF 200
+static uint8_t *pktBuf = NULL;
+#define SIZE_PKTBUF 1024
+static char *topicBuf = NULL;
+#define SIZE_TOPICBUF 256
 
-extern void umqttTest_EventCb(umqtt_Handle_t, umqtt_Event_t, void *, void *);
-
-TEST_SETUP(BuildUnsubscribe)
+TEST_SETUP(Unsubscribe)
 {
-    static umqtt_Instance_t inst;
-    h = umqtt_InitInstance(&inst, umqttTest_EventCb, NULL);
-    options = (umqtt_Unsubscribe_Options_t)UNSUBSCRIBE_OPTIONS_INITIALIZER;
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
+    // allocate memory for the instance that will be created
+    // init the instance so it will be ready for all tests
+    mock_malloc_Reset();
+    instBuf = malloc(SIZE_INSTBUF);
+    mock_hNet = &mock_hNet;
+    transportConfig.hNet = mock_hNet;
+    mock_malloc_shouldReturn[0] = instBuf;
+    h = umqtt_New(&transportConfig, NULL, NULL);
+    TEST_ASSERT_NOT_NULL(h);
+    // clear all mocks
+    mock_malloc_Reset();
+    mock_free_Reset();
+    mock_NetRead_Reset();
+    mock_NetWrite_Reset();
+    // ready a buffer that can be used for packet allocation
+    pktBuf = malloc(SIZE_PKTBUF);
+    TEST_ASSERT_NOT_NULL(pktBuf);
+    topicBuf = malloc(SIZE_TOPICBUF);
+    TEST_ASSERT_NOT_NULL(topicBuf);
+    memset(topicBuf, 'A', SIZE_TOPICBUF);
+    // fake an existing connection
+    wrap_setConnected(h, true);
 }
 
-TEST_TEAR_DOWN(BuildUnsubscribe)
+TEST_TEAR_DOWN(Unsubscribe)
 {
+    if (instBuf) { free(instBuf); instBuf = NULL; }
+    if (pktBuf) { free(pktBuf); pktBuf = NULL; }
+    if (topicBuf) { free(topicBuf); topicBuf = NULL; }
     h = NULL;
 }
 
-TEST(BuildUnsubscribe, NullParms)
+TEST(Unsubscribe, NullParms)
 {
-    umqtt_Error_t err = umqtt_BuildUnsubscribe(h, NULL, &options);
+    const char *topics[1];
+    topics[0] = "topic";
+    umqtt_Error_t err = umqtt_Unsubscribe(NULL, 0, NULL, NULL);
     TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-    err = umqtt_BuildUnsubscribe(h, &encbuf, NULL);
+    err = umqtt_Unsubscribe(h, 0, NULL, NULL);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
+    err = umqtt_Unsubscribe(h, 0, topics, NULL);
     TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
 }
 
-TEST(BuildUnsubscribe, BadParms)
-{
-    // test various combinations of bad inputs to connect
-    umqtt_Error_t err;
-    umqtt_Data_t topics[1];
-    UMQTT_INIT_DATA_STR(topics[0], "topic");
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    options.pTopics = NULL;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    options.count = 0;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    topics[0].data = NULL;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    topics[0].len = 0;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    encbuf.data = NULL;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    encbuf.len = 0;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_PARM, err);
-}
-
-TEST(BuildUnsubscribe, CalcLength)
+TEST(Unsubscribe, CalcLength)
 {
     umqtt_Error_t err;
     uint16_t expectedLen;
-    umqtt_Data_t topics[2];
+    const char *topics[2];
+
+    // base value for expected len.  every packet should have this
+    // 1 byte fix header, 4 bytes remaining length (we allow the max of 4)
+    // 2 bytes packet id, 2 bytes topic len, internal packet overhead
+    expectedLen = 1 + 4 + 2 + 2 + sizeof(PktBuf_t);
 
     // create a single topic packet, check length calculation
-    UMQTT_INIT_DATA_STR(topics[0], "topic");
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    // type + len + packetId + topic len + topic
-    expectedLen = 1 + 1 + 2 + 2 + 5;
-    err = umqtt_BuildUnsubscribe(NULL, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_RET_LEN, err);
-    TEST_ASSERT_EQUAL(expectedLen, encbuf.len);
+    topics[0] = "topic";
+    expectedLen += strlen(topics[0]);
+    err = umqtt_Unsubscribe(h, 1, topics, NULL);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_BUFSIZE, err);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_EQUAL(expectedLen, mock_malloc_in_size);
 
     // add a second topic
-    UMQTT_INIT_DATA_STR(topics[1], "topic2");
-    UMQTT_INIT_UNSUBSCRIBE(options, 2, topics);
-    expectedLen += 2 + 6;
-    err = umqtt_BuildUnsubscribe(NULL, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_RET_LEN, err);
-    TEST_ASSERT_EQUAL(expectedLen, encbuf.len);
-
-    // check that too small buffer returns error
-    encbuf.len = expectedLen - 1;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
+    mock_malloc_Reset();
+    topics[1] = "topic2";
+    expectedLen += 2 + strlen(topics[1]);
+    err = umqtt_Unsubscribe(h, 2, topics, NULL);
     TEST_ASSERT_EQUAL(UMQTT_ERR_BUFSIZE, err);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_EQUAL(expectedLen, mock_malloc_in_size);
 }
 
-TEST(BuildUnsubscribe, EncodedLength)
+TEST(Unsubscribe, EncodedLength)
 {
     umqtt_Error_t err;
     uint16_t rem;
-    umqtt_Data_t topics[1];
+    const char *topics[1];
 
     // create a dummy subscribe topic of known length
-    topics[0].data = testBuf;
-    topics[0].len = 45;
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
+    topicBuf[45] = 0;
+    topics[0] = topicBuf;
     // remaining size is packetId + topic len + topic + qos
     rem = 2 + 2 + 45;
 
-    // create a subscribe packet and verify encoded length
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(2 + rem, encbuf.len);
-    TEST_ASSERT_EQUAL(rem, encbuf.data[1]);
+    // create a unsubscribe packet and verify encoded length
+    mock_malloc_shouldReturn[0] = pktBuf;
+    err = umqtt_Unsubscribe(h, 1, topics, NULL);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_NETWORK, err);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
+    TEST_ASSERT_TRUE(mock_NetWrite_wasCalled);
+    TEST_ASSERT_EQUAL(rem, mock_NetWrite_in_pBuf[1]);
 
     // create one that uses two bytes for remaining length
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf);
-    topics[0].len = 201;
+    mock_malloc_Reset();
+    mock_NetWrite_Reset();
+    topicBuf[45] = 'A';
+    topicBuf[201] = 0;
     rem = 2 + 2 + 201;
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(3 + rem, encbuf.len);
-    TEST_ASSERT_EQUAL(0xCD, encbuf.data[1]);
-    TEST_ASSERT_EQUAL(1, encbuf.data[2]);
+    mock_malloc_shouldReturn[0] = pktBuf;
+    err = umqtt_Unsubscribe(h, 1, topics, NULL);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_NETWORK, err);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
+    TEST_ASSERT_TRUE(mock_NetWrite_wasCalled);
+    TEST_ASSERT_EQUAL(0xCD, mock_NetWrite_in_pBuf[1]);
+    TEST_ASSERT_EQUAL(1, mock_NetWrite_in_pBuf[2]);
 }
 
 static const uint8_t unsubscribePacket0[] =
@@ -149,84 +146,70 @@ static const uint8_t unsubscribePacket1[] =
     0, 6, 't','o','p','i','c','2', // topic 1
 };
 
-TEST(BuildUnsubscribe, SingleTopic)
+TEST(Unsubscribe, SingleTopic)
 {
     umqtt_Error_t err;
-    umqtt_Data_t topics[1];
+    const char *topics[1];
+    uint16_t msgId = 5555;
 
-    UMQTT_INIT_DATA_STR(topics[0], "topic");
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
+    unsigned int pktSize = sizeof(unsubscribePacket0);
+    mock_NetWrite_shouldReturn = pktSize;
+    mock_malloc_shouldReturn[0] = pktBuf;
+    topics[0] = "topic";
+    err = umqtt_Unsubscribe(h, 1, topics, &msgId);
     TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(sizeof(unsubscribePacket0), encbuf.len);
-    TEST_ASSERT_EQUAL_MEMORY(unsubscribePacket0, encbuf.data, sizeof(unsubscribePacket0));
+    TEST_ASSERT_NOT_EQUAL(0, msgId);
+    TEST_ASSERT_NOT_EQUAL(5555, msgId);
+
+    // verify expected allocations/free
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
+    TEST_ASSERT_FALSE(mock_free_wasCalled);
+
+    // verify net write was called and with expected size
+    TEST_ASSERT_TRUE(mock_NetWrite_wasCalled);
+    TEST_ASSERT_EQUAL(pktSize, mock_NetWrite_in_len);
+    TEST_ASSERT_FALSE(mock_NetWrite_in_isMore);
+
+    // check the packet contents
+    TEST_ASSERT_EQUAL_MEMORY(unsubscribePacket0, mock_NetWrite_in_pBuf, pktSize);
 }
 
-TEST(BuildUnsubscribe, MultiTopic)
+TEST(Unsubscribe, MultiTopic)
 {
     umqtt_Error_t err;
-    umqtt_Data_t topics[2];
+    const char *topics[2];
+    uint16_t msgId = 5555;
 
-    UMQTT_INIT_DATA_STR(topics[0], "topic");
-    UMQTT_INIT_DATA_STR(topics[1], "topic2");
-    UMQTT_INIT_UNSUBSCRIBE(options, 2, topics);
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
+    unsigned int pktSize = sizeof(unsubscribePacket1);
+    mock_NetWrite_shouldReturn = pktSize;
+    mock_malloc_shouldReturn[0] = pktBuf;
+    topics[0] = "topic";
+    topics[1] = "topic2";
+    err = umqtt_Unsubscribe(h, 2, topics, &msgId);
     TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(sizeof(unsubscribePacket1), encbuf.len);
-    TEST_ASSERT_EQUAL_MEMORY(unsubscribePacket1, encbuf.data, sizeof(unsubscribePacket1));
+    TEST_ASSERT_NOT_EQUAL(0, msgId);
+    TEST_ASSERT_NOT_EQUAL(5555, msgId);
+
+    // verify expected allocations/free
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
+    TEST_ASSERT_FALSE(mock_free_wasCalled);
+
+    // verify net write was called and with expected size
+    TEST_ASSERT_TRUE(mock_NetWrite_wasCalled);
+    TEST_ASSERT_EQUAL(pktSize, mock_NetWrite_in_len);
+    TEST_ASSERT_FALSE(mock_NetWrite_in_isMore);
+
+    // check the packet contents
+    TEST_ASSERT_EQUAL_MEMORY(unsubscribePacket1, mock_NetWrite_in_pBuf, pktSize);
 }
 
-TEST(BuildUnsubscribe, PacketId)
+TEST_GROUP_RUNNER(Unsubscribe)
 {
-    umqtt_Error_t err;
-    umqtt_Data_t topics[1];
-    umqtt_Instance_t *pInst = h;
-
-    // verify packet id is correct in packet
-    UMQTT_INIT_DATA_STR(topics[0], "topic");
-    UMQTT_INIT_UNSUBSCRIBE(options, 1, topics);
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(0, encbuf.data[2]);
-    TEST_ASSERT_EQUAL(1, encbuf.data[3]);
-
-    // send another packet, verify packet id increments
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf); // reset encbuf
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(0, encbuf.data[2]);
-    TEST_ASSERT_EQUAL(2, encbuf.data[3]);
-
-    // check rollover to upper byte
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf); // reset encbuf
-    pInst->packetId = 255; // force boundary condition
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(1, encbuf.data[2]);
-    TEST_ASSERT_EQUAL(0, encbuf.data[3]);
-
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf); // reset encbuf
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(1, encbuf.data[2]);
-    TEST_ASSERT_EQUAL(1, encbuf.data[3]);
-
-    // force packet id rollover, verify works
-    UMQTT_INIT_DATA_STATIC_BUF(encbuf, testBuf); // reset encbuf
-    pInst->packetId = 65535; // force boundary condition
-    err = umqtt_BuildUnsubscribe(h, &encbuf, &options);
-    TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
-    TEST_ASSERT_EQUAL(0, encbuf.data[2]);
-    TEST_ASSERT_EQUAL(1, encbuf.data[3]);
-}
-
-TEST_GROUP_RUNNER(BuildUnsubscribe)
-{
-    RUN_TEST_CASE(BuildUnsubscribe, NullParms);
-    RUN_TEST_CASE(BuildUnsubscribe, BadParms);
-    RUN_TEST_CASE(BuildUnsubscribe, CalcLength);
-    RUN_TEST_CASE(BuildUnsubscribe, EncodedLength);
-    RUN_TEST_CASE(BuildUnsubscribe, SingleTopic);
-    RUN_TEST_CASE(BuildUnsubscribe, MultiTopic);
-    RUN_TEST_CASE(BuildUnsubscribe, PacketId);
+    RUN_TEST_CASE(Unsubscribe, NullParms);
+    RUN_TEST_CASE(Unsubscribe, CalcLength);
+    RUN_TEST_CASE(Unsubscribe, EncodedLength);
+    RUN_TEST_CASE(Unsubscribe, SingleTopic);
+    RUN_TEST_CASE(Unsubscribe, MultiTopic);
 }

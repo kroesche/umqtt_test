@@ -6,57 +6,65 @@
 
 #include "unity_fixture.h"
 #include "umqtt/umqtt.h"
+#include "umqtt_mocks.h"
 
 TEST_GROUP(Instance);
 
-extern void umqttTest_EventCb(umqtt_Handle_t, umqtt_Event_t, void *, void *);
+static void *allocBuf;
 
 TEST_SETUP(Instance)
-{}
+{
+    mock_malloc_Reset();
+    mock_free_Reset();
+    mock_NetRead_Reset();
+    mock_NetWrite_Reset();
+    // the hNet field needs to be set up at run time
+    mock_hNet = &mock_hNet;
+    transportConfig.hNet = mock_hNet;
+    allocBuf = malloc(256);
+}
 
 TEST_TEAR_DOWN(Instance)
-{}
+{
+    free(allocBuf);
+}
 
 TEST(Instance, InitNullInstance)
 {
-    umqtt_Handle_t h = umqtt_InitInstance(NULL, NULL, NULL);
+    umqtt_Handle_t h = umqtt_New(NULL, NULL, NULL);
     TEST_ASSERT_NULL(h);
+    TEST_ASSERT_EQUAL(0, mock_malloc_count);
+}
+
+TEST(Instance, InitMallocFail)
+{
+    mock_malloc_shouldReturn[0] = NULL;
+    umqtt_Handle_t h = umqtt_New(&transportConfig, NULL, NULL);
+    TEST_ASSERT_NULL(h);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
 }
 
 TEST(Instance, InitNominal)
 {
-    umqtt_Instance_t inst;
-    umqtt_Handle_t h = umqtt_InitInstance(&inst, umqttTest_EventCb, NULL);
-    TEST_ASSERT_EQUAL_PTR(&inst, h);
-    TEST_ASSERT_EQUAL_PTR(umqttTest_EventCb, inst.EventCb);
-    TEST_ASSERT_NULL(inst.pUser);
+    mock_malloc_shouldReturn[0] = allocBuf;
+    umqtt_Handle_t h = umqtt_New(&transportConfig, NULL, NULL);
+    TEST_ASSERT_EQUAL(1, mock_malloc_count);
+    TEST_ASSERT_EQUAL_PTR(allocBuf, h);
+    TEST_ASSERT_NOT_EQUAL(0, mock_malloc_in_size);
+    umqtt_Error_t err = umqtt_GetConnectedStatus(h);
+    TEST_ASSERT_EQUAL(UMQTT_ERR_DISCONNECTED, err);
 }
 
-TEST(Instance, PacketId)
+TEST(Instance, Delete)
 {
-    umqtt_Instance_t inst;
-    inst.packetId = 5;
-    umqtt_Handle_t h = umqtt_InitInstance(&inst, umqttTest_EventCb, NULL);
-    TEST_ASSERT_EQUAL_PTR(&inst, h);
-    TEST_ASSERT_EQUAL(0, inst.packetId);
-    TEST_ASSERT_NULL(inst.pUser);
-}
-
-TEST(Instance, UserArg)
-{
-    umqtt_Instance_t inst;
-    inst.pUser = NULL;
-    unsigned int dummy = 1234;
-    umqtt_Handle_t h = umqtt_InitInstance(&inst, umqttTest_EventCb, &dummy);
-    TEST_ASSERT_EQUAL_PTR(&inst, h);
-    TEST_ASSERT_EQUAL(0, inst.packetId);
-    TEST_ASSERT_EQUAL_PTR(&dummy, inst.pUser);
+    TEST_IGNORE();
 }
 
 TEST_GROUP_RUNNER(Instance)
 {
     RUN_TEST_CASE(Instance, InitNullInstance);
+    RUN_TEST_CASE(Instance, InitMallocFail);
     RUN_TEST_CASE(Instance, InitNominal);
-    RUN_TEST_CASE(Instance, PacketId);
-    RUN_TEST_CASE(Instance, UserArg);
+    RUN_TEST_CASE(Instance, Delete);
 }
