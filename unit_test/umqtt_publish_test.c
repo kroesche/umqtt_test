@@ -92,7 +92,7 @@ TEST(Publish, CalcLength)
     mock_malloc_Reset();
     uint8_t *message = (uint8_t *)"message";
     uint32_t messageLen = strlen((const char *)message);
-    expectedLen += 2 + 7;
+    expectedLen += 7;
     err = umqtt_Publish(h, topic, message, messageLen, 0, false, NULL);
     TEST_ASSERT_EQUAL(UMQTT_ERR_BUFSIZE, err);
     TEST_ASSERT_EQUAL(1, mock_malloc_count);
@@ -166,10 +166,10 @@ static uint8_t publishPacket0[] =
 
 static uint8_t publishPacket1[] =
 {
-    0x33, 18, // qos 1, retain
+    0x33, 16, // qos 1, retain
     0, 5, 't','o','p','i','c',
     0, 1, // packet id
-    0, 7, 'm','e','s','s','a','g','e',
+    'm','e','s','s','a','g','e',
 };
 
 TEST(Publish, Basic)

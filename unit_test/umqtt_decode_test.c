@@ -286,9 +286,9 @@ TEST(Decode, PublishBadMsgLen)
     // - msg len longer than remaining size
     static uint8_t pubPkt[] =
     {
-        0x30, 15, // one byte less than will fit message
+        0x30, 13, // one byte less than will fit message
         0, 5, 't', 'o', 'p', 'i', 'c',
-        0, 7, 'm', 'e', 's', 's', 'a', 'g', 'e'
+        'm', 'e', 's', 's', 'a', 'g', 'e'
     };
     umqtt_Error_t err = umqtt_DecodePacket(h, pubPkt, sizeof(pubPkt));
     TEST_ASSERT_EQUAL(UMQTT_ERR_PACKET_ERROR, err);
@@ -299,9 +299,9 @@ TEST(Decode, PublishExtraBytes)
     // - msg len longer than remaining size
     static uint8_t pubPkt[] =
     {
-        0x30, 17, // one byte less than will fit message
+        0x30, 15, // one byte less than will fit message
         0, 5, 't', 'o', 'p', 'i', 'c',
-        0, 7, 'm', 'e', 's', 's', 'a', 'g', 'e',
+        'm', 'e', 's', 's', 'a', 'g', 'e',
         0
     };
     umqtt_Error_t err = umqtt_DecodePacket(h, pubPkt, sizeof(pubPkt));
@@ -333,9 +333,9 @@ TEST(Decode, PublishTopicMsg)
 {
     static uint8_t pubPkt[] =
     {
-        0x31, 16, // add retain
+        0x31, 14, // add retain
         0, 5, 't', 'o', 'p', 'i', 'c',
-        0, 7, 'm', 'e', 's', 's', 'a', 'g', 'e',
+        'm', 'e', 's', 's', 'a', 'g', 'e',
     };
     umqtt_Error_t err = umqtt_DecodePacket(h, pubPkt, sizeof(pubPkt));
     TEST_ASSERT_EQUAL(UMQTT_ERR_OK, err);
@@ -355,10 +355,10 @@ TEST(Decode, PublishQos1)
 {
     static uint8_t pubPkt[] =
     {
-        0x3A, 18, // dup and qos=1
+        0x3A, 16, // dup and qos=1
         0, 5, 't', 'o', 'p', 'i', 'c',
         0x34, 0x56, // packet ID
-        0, 7, 'm', 'e', 's', 's', 'a', 'g', 'e',
+        'm', 'e', 's', 's', 'a', 'g', 'e',
     };
     static uint8_t puback[] = { 0x40, 2, 0x34, 0x56 }; // expected puback
     mock_NetWrite_shouldReturn = 4;

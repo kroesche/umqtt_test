@@ -364,7 +364,7 @@ TEST(Connect, SubPub)
     TEST_ASSERT_FALSE(Publish_dup);
     TEST_ASSERT_FALSE(Publish_retain);
     TEST_ASSERT_EQUAL(0, Publish_qos);
-    TEST_ASSERT_EQUAL_STRING(topics[0], Publish_topic);
+    TEST_ASSERT_EQUAL_STRING_LEN(topics[0], Publish_topic, Publish_topicLen);
     TEST_ASSERT_EQUAL(strlen(topics[0]), Publish_topicLen);
     TEST_ASSERT_EQUAL_UINT8_ARRAY(msg, Publish_msg, msgLen);
     TEST_ASSERT_EQUAL(msgLen, Publish_msgLen);
