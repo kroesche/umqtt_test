@@ -66,7 +66,7 @@ TEST(Subscribe, CalcLength)
 {
     umqtt_Error_t err;
     uint16_t expectedLen;
-    const char *topics[2];
+    char *topics[2];
     uint8_t qoss[2];
 
     // base value for expected len.  every packet should have this
@@ -101,7 +101,7 @@ TEST(Subscribe, EncodedLength)
 {
     umqtt_Error_t err;
     uint16_t rem;
-    const char *topics[1];
+    char *topics[1];
     uint8_t qoss[1];
 
     // create a dummy subscribe topic of known length
@@ -157,7 +157,7 @@ static const uint8_t subscribePacket1[] =
 TEST(Subscribe, SingleTopic)
 {
     umqtt_Error_t err;
-    const char *topics[1];
+    char *topics[1];
     uint8_t qoss[1];
     uint16_t msgId = 5555;
 
@@ -188,7 +188,7 @@ TEST(Subscribe, SingleTopic)
 TEST(Subscribe, MultiTopic)
 {
     umqtt_Error_t err;
-    const char *topics[2];
+    char *topics[2];
     uint8_t qoss[2];
     uint16_t msgId = 5555;
 

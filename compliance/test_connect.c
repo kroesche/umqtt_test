@@ -329,7 +329,7 @@ TEST(Connect, SubPub)
     TEST_ASSERT_EQUAL(UMQTT_ERR_CONNECTED, err);
 
     // set up subscribe parameters
-    const char *topics[2];
+    char *topics[2];
     topics[0] = "umqtt/topic0";
     topics[1] = "umqtt/topic1";
     uint8_t qoss[2];

@@ -36,6 +36,27 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="0.429867732.205317404" name="/" resourcePath="mcu_test">
+						<toolChain id="org.eclipse.cdt.build.core.prefbase.toolchain.146619943" name="No ToolChain" superClass="org.eclipse.cdt.build.core.prefbase.toolchain" unusedChildren="">
+							<tool id="org.eclipse.cdt.build.core.settings.holder.libs.542382628" name="holder for library settings" superClass="org.eclipse.cdt.build.core.settings.holder.libs.2133356342"/>
+							<tool id="org.eclipse.cdt.build.core.settings.holder.145617358" name="Assembly" superClass="org.eclipse.cdt.build.core.settings.holder.1326932723">
+								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.428404340" languageId="org.eclipse.cdt.core.assembly" languageName="Assembly" sourceContentType="org.eclipse.cdt.core.asmSource" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
+							</tool>
+							<tool id="org.eclipse.cdt.build.core.settings.holder.361007121" name="GNU C++" superClass="org.eclipse.cdt.build.core.settings.holder.1326932723">
+								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1848405957" languageId="org.eclipse.cdt.core.g++" languageName="GNU C++" sourceContentType="org.eclipse.cdt.core.cxxSource,org.eclipse.cdt.core.cxxHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
+							</tool>
+							<tool id="org.eclipse.cdt.build.core.settings.holder.1879119441" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder.1326932723">
+								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.1412826571" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/usr/include"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Unity/src&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Unity/extras/fixture/src&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${CWD}/../../ti/StellarisWare-LM3S-10636&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${CWD}/../../ti/StellarisWare-LM3S-10636/third_party/lwip-1.3.2/src/include&quot;"/>
+								</option>
+								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1756060566" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

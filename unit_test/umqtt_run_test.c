@@ -605,7 +605,7 @@ TEST(Run, Publish)
 TEST(Run, SubscribeTimeout)
 {
     umqtt_Error_t err;
-    const char *topics[1];
+    char *topics[1];
     uint8_t qoss[1];
     topics[0] = "topic";
     qoss[0] = 0;
@@ -674,7 +674,7 @@ TEST(Run, Subscribe)
 {
     umqtt_Error_t err;
     uint16_t msgId;
-    const char *topics[1];
+    char *topics[1];
     uint8_t qoss[1];
     topics[0] = "topic";
     qoss[0] = 0;
