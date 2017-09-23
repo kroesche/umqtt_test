@@ -1,0 +1,12 @@
+language: c
+
+compiler:
+  - gcc
+
+script:
+  - uname -a
+  - gcc --version
+  - cd unit_test
+  - make
+  - ./umqtt_unit_test -v
+
