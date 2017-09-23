@@ -1,0 +1,38 @@
+language: c
+
+compiler:
+  - gcc
+
+cache:
+  directories:
+    - unit_test/build
+
+# I separated the build and the unit test into stages.  I was hoping I could
+# get a per-stage badge indicator but it turns out you only get one badge
+# for the entire run.  This could be simplified by combining the build and
+# test.  Keeping separate stages still makes it clear which stage has the
+# error when you view the job in travis.
+# The caching is a trick to preserve build artifacts between stages
+# I got from here:
+#  https://github.com/travis-ci/docs-travis-ci-com/issues/1329
+
+jobs:
+  include:
+    - stage: build
+      install:
+        - rm -rf unit_test/build
+        - mkdir unit_test/build
+        - echo "$TRAVIS_BUILD_ID"
+        - echo "$TRAVIS_BUILD_ID" > unit_test/build/travis_build_id
+      script:
+        - cd unit_test
+        - make
+    - stage: unittest
+      install:
+      - if test "$TRAVIS_BUILD_ID" != $(cat unit_test/build/travis_build_id); then travis_terminate 1; fi
+      - rm -f unit_test/build/travis_build_id
+      script:
+      - unit_test/build/umqtt_unit_test -v
+      - rm -rf unit_test/build
+      - mkdir unit_test/build
+

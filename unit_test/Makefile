@@ -14,8 +14,9 @@
 ###############################################################################
 
 EXE:=umqtt_unit_test
+EXEDIR:=build
 
-CFLAGS:=-g -Wall -O0 -DUNITY_EXCLUDE_FLOAT -I../ -I../Unity/src -I../Unity/extras/fixture/src
+CFLAGS:=-g -std=c99 -pedantic-errors -Wall -Wextra -Werror -O0 -DUNITY_EXCLUDE_FLOAT -I../ -I../Unity/src -I../Unity/extras/fixture/src
 
 SRCS=$(EXE).c
 SRCS+=umqtt_mocks.c umqtt_instance_test.c umqtt_connect_test.c umqtt_publish_test.c
@@ -24,12 +25,16 @@ SRCS+=umqtt_decode_test.c umqtt_run_test.c
 SRCS+=umqtt_wrapper.c ../Unity/src/unity.c ../Unity/extras/fixture/src/unity_fixture.c
 #SRCS+=../umqtt/umqtt.c ../Unity/src/unity.c ../Unity/extras/fixture/src/unity_fixture.c
 
-all: $(EXE)
+all: $(EXEDIR)/$(EXE)
 
-$(EXE): $(SRCS)
-	gcc $(CFLAGS) $^ -o $@
+$(EXEDIR):
+	mkdir $(EXEDIR)
+
+$(EXEDIR)/$(EXE): $(EXEDIR) $(SRCS)
+	gcc $(CFLAGS) $(SRCS) -o $@
 
 clean:
-	rm -f *.o $(EXE)
+	rm -f *.o
+	rm -rf $(EXEDIR)
 
 .PHONY: all clean

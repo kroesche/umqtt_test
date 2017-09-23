@@ -1,15 +1,26 @@
-Contains tests for testing the umqtt client.
+umqtt_test
+----------
 
-Test directories:
+Contains tests for testing the
+[umqtt client](https://github.com/kroesche/umqtt).
+
+### Travis build status
+
+Build and unit test [![Build Status](https://travis-ci.org/kroesche/umqtt_test.svg?branch=master)](https://travis-ci.org/kroesche/umqtt_test)
+
+### Directories
 
 - unit_test - runs unit tests against some/many/all the functions
 - compliance - runs a compliance test on umqtt against a test server
+- umqtt - client source code used for tests
 
-Submodules:
+### Submodules
 
 - umqtt - the umqtt client source code
 - paho.mqtt.testing - mqtt test server, written in python
 - Unity - the unit testing framework
+
+### Usage
 
 Assuming repo is cloned and all submods are updated ...
 
@@ -17,7 +28,7 @@ To run unit test ...
 
 1. cd unit_test
 2. make
-3. ./umqtt_unit_test -v
+3. build/umqtt_unit_test -v
 
 To run compliance test ...
 

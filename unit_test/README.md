@@ -12,7 +12,8 @@ uses the [Unity test framework](http://www.throwtheswitch.org/unity/)
 License
 -------
 
-Copyright © 2016, Joseph Kroesche (tronics.kroesche.io). All rights reserved.
+Copyright © 2016-2017, Joseph Kroesche (tronics.kroesche.io).
+All rights reserved.
 This software is released under the FreeBSD license, found in the accompanying
 file LICENSE.txt and at the following URL:
 
@@ -30,10 +31,11 @@ Usage
 
     make clean
     make
-    ./umqtt_unit_test -v
+    build/umqtt_unit_test -v
 
 The unit test does not require a microcontroller to run.
 
 Support
 -------
 Please open an issue if you find any problems.
+
