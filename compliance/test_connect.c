@@ -166,6 +166,7 @@ netReadPacket(void *hNet, uint8_t **ppBuf)
 static int
 netWritePacket(void *hNet, const uint8_t *pBuf, uint32_t len, bool isMore)
 {
+    (void)isMore; // unused
     int socket = *(int *)hNet;
     int ret = WriteToServer(socket, pBuf, len);
     return ret;

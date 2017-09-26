@@ -27,6 +27,9 @@ jobs:
       script:
         - cd unit_test
         - make
+        # also do test build of compliance test
+        - cd ../compliance
+        - make
     - stage: unittest
       install:
       - if test "$TRAVIS_BUILD_ID" != $(cat unit_test/build/travis_build_id); then travis_terminate 1; fi

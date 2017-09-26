@@ -89,7 +89,7 @@ WriteToServer(int socket, const uint8_t *buf, uint32_t len)
     {
         printf("write error %d (%s)\n", errno, strerror(errno));
     }
-    else if (res != len)
+    else if ((uint32_t)res != len)
     {
         printf("write incomplete, attempted %d, wrote %d\n", len, res);
     }

@@ -15,7 +15,7 @@
 
 EXE:=umqtt_compliance_test
 
-CFLAGS:=-g -Wall -O0 -DUNITY_EXCLUDE_FLOAT -I../ -I../Unity/src -I../Unity/extras/fixture/src
+CFLAGS:=-g -std=gnu99 -pedantic-errors -Wall -Wextra -Werror -O0 -DUNITY_EXCLUDE_FLOAT -I../ -I../Unity/src -I../Unity/extras/fixture/src
 
 SRCS=$(EXE).c
 SRCS+=test_connect.c
@@ -29,4 +29,5 @@ $(EXE): $(SRCS)
 clean:
 	rm -f *.o $(EXE)
 
-.PHONY: all clean
+.PHONY: alli clean
+
